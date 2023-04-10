@@ -7,9 +7,9 @@ const usersSchema = new mongoose.Schema(
       lastName: String,
       email: { type: String, unique: true },
       age: Number,
-      salary: { type: Number, default: 100000 },
+      phone: Number,
       role: { type: String, default: "BRONZE", enum: ["BRONZE", "SILVER", "GOLD", "ADMIN"] },
-      avatar: String,
+      avatar: {type: String, default: "doge.jpg"}
     },
     {
       collection: "users",
