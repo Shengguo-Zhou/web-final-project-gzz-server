@@ -1,55 +1,77 @@
-import people from './users.js'
-let users = people
+import * as usersDao from "./users-dao.js";
 
-const UserController = (app) => {
-  app.get('/api/users', findUsers)
-  app.get('/api/users/:uid', findUserById);
-  app.post('/api/users', createUser);
-  app.delete('/api/users/:uid', deleteUser);
-  app.put('/api/users/:uid', updateUser);
+let currentUser = null;
+
+function UsersController(app) {
+  const findAllUsers = async (req, res) => {
+    const users = await usersDao.findAllUsers();
+    res.send(users);
+  };
+  const findUserById = async (req, res) => {
+    const id = req.params.id;
+    const user = await usersDao.findUserById(id);
+    res.send(user);
+  };
+  const deleteUserById = async (req, res) => {
+    const id = req.params.id;
+    const status = await usersDao.deleteUser(id);
+    res.json(status);
+  };
+  const createUser = async (req, res) => {
+    const user = await usersDao.createUser(req.body);
+    res.json(user);
+  };
+  const updateUser = async (req, res) => {
+    const id = req.params.id;
+    const status = await usersDao.updateUser(id, req.body);
+    res.json(status);
+  };
+  const login = async (req, res) => {
+    const user = req.body;
+    const foundUser = await usersDao.findUserByCredentials(
+        user.username,
+        user.password
+    );
+    if (foundUser) {
+      currentUser = foundUser;
+      res.send(foundUser);
+    } else {
+      res.sendStatus(404);
+    }
+  };
+  const logout = async (req, res) => {
+    currentUser = null;
+    res.sendStatus(204);
+  };
+  const profile = async (req, res) => {
+    if (currentUser) {
+      res.send(currentUser);
+    } else {
+      res.sendStatus(404);
+    }
+  };
+  const register = async (req, res) => {
+    const user = req.body;
+    const foundUser = await usersDao.findUserByUsername(req.body.username);
+    if (foundUser) {
+      res.sendStatus(409);
+    } else {
+      const newUser = await usersDao.createUser(user);
+      currentUser = newUser;
+      res.json(newUser);
+    }
+  };
+
+  app.post("/api/users/login", login);
+  app.post("/api/users/logout", logout);
+  app.get("/api/users/profile", profile);
+  app.post("/api/users/register", register);
+
+  app.get("/api/users", findAllUsers);
+  app.delete("/api/users/:id", deleteUserById);
+  app.post("/api/users", createUser);
+  app.put("/api/users/:id", updateUser);
 }
 
-const findUsers = (req, res) => {
-  const type = req.query.type
-  if(type) {
-    const usersOfType = users
-    .filter(u => u.type === type)
-    res.json(usersOfType)
-    return
-  }
-  res.json(users)
-}
-
-const findUserById = (req, res) => {
-  const userId = req.params.uid;
-  const user = users
-  .find(u => u._id === userId);
-  res.json(user);
-}
-
-const createUser = (req, res) => {
-  const newUser = req.body;
-  newUser._id = (new Date()).getTime() + '';
-  users.push(newUser);
-  res.json(newUser);
-}
-const deleteUser = (req, res) => {
-  const userId = req.params['uid'];
-  users = users.filter(usr =>
-      usr._id !== userId);
-  res.sendStatus(200);
-}
-
-const updateUser = (req, res) => {
-  const userId = req.params['uid'];
-  const updates = req.body;
-  users = users.map((usr) =>
-      usr._id === userId ?
-          {...usr, ...updates} :
-          usr
-  );
-  res.sendStatus(200);
-}
-
-export default UserController
+export default UsersController;
 
